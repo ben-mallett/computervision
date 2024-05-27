@@ -1,7 +1,14 @@
+"""
+Lab 3 for Pattern Recognition and Computer Vision
+
+Author: Ben Mallett
+Date: 5/15/24
+"""
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from random import randint
+from collections.abc import Iterable
 
 class Kernels:
     IDENTITY_3X3 = [
@@ -31,15 +38,20 @@ class Kernels:
         [-1, 8, -1],
         [-1, -1, -1]
     ]
-    SHARPEN = [
+    SHARPEN_3X3 = [
         [0, -1, 0],
         [-1, 5, -1],
         [0, -1, 0]
     ]
-    BOX_BLUR = [
+    BOX_BLUR_3X3 = [
         [1/9, 1/9, 1/9],
         [1/9, 1/9, 1/9],
         [1/9, 1/9, 1/9]
+    ]
+    DERIVATIVE_3X3 = [
+        [-1, 0, 1],
+        [-1, 0, 1],
+        [-1, 0, 1]
     ]
     GAUSS_BLUR_3X3 = [
         [1/16, 2/16, 1/16],
@@ -53,16 +65,55 @@ class Kernels:
         [4/256, 16/256, 24/256, 16/256, 4/256],
         [1/256, 4/256, 6/256, 4/256, 1/256],
     ]
-    UNSHARP_MASKING = [
+    UNSHARP_MASKING_5X5 = [
         [-1/256, -4/256, -6/256, -4/256, -1/256],
         [-4/256, -16/256, -24/256, -16/256, -4/256],
         [-6/256, -24/256, 476/256, -24/256, -6/256],
         [-4/256, -16/256, -24/256, -16/256, -4/256],
         [-1/256, -4/256, -6/256, -4/256, -1/256],
     ]
+    EMBOSS_3X3 = [
+        [1, 1, 0],
+        [1, 0, -1],
+        [0, -1, -1]
+    ]
+    EMBOSS_5X5 = [
+        [1, 1, 1, 1, 0],
+        [1, 1, 1, 0, 0],
+        [1, 1, 0, -1, -1],
+        [1, 0, -1, -1, -1],
+        [0, -1, -1, -1, -1],
+    ]
+    EMBOSS_2_3X3 = [
+        [2, 1, 0],
+        [1, 0, -1],
+        [0, -1, -2],
+    ]
+    SOBEL_X_3X3 = [
+        [1, 0, -1],
+        [2, 0, -2],
+        [1, 0, -1]
+    ]
+    SOBEL_Y_3X3 = [
+        [1, 2, 1],
+        [0, 0, 0],
+        [-1, -2, -1]
+    ]
+    MOTION_BLUR_3x3 = [
+        [1/3, 0, 0],
+        [0, 1/3, 0],
+        [0, 0, 1/3],
+    ]
+    MOTION_BLUR_5X5 = [
+        [1/5, 0, 0, 0, 0],
+        [0, 1/5, 0, 0, 0],
+        [0, 0, 1/5, 0, 0],
+        [0, 0, 0, 1/5, 0],
+        [0, 0, 0, 0, 1/5],
+    ]
 
 class Formulae:
-    def averageGrayscaleFormula(pixel):
+    def averageGrayscale(pixel):
         """
         Standard formula for calculating grayscale from color.
         Averages each channel.
@@ -70,18 +121,21 @@ class Formulae:
         Params:
             pixel : tuple(b, g, r)
         """
-        return np.sum(pixel) / 3
+        return np.sum(pixel) // 3
 
-    def ncstGrayscaleFormula(pixel):
+    def ncstGrayscale(pixel):
         """
         Scales each channel by a set coefficient to balance out the visual effect each channel has on grayscale images.
 
         Params:
             pixel : tuple(b, g, r)
         """
-        return 0.299*(pixel[2]) + 0.587*(pixel[1]) + 0.114*(pixel[0])
+        if isinstance(pixel, Iterable):
+            return 0.299*(pixel[2]) + 0.587*(pixel[1]) + 0.114*(pixel[0])
+        else:
+            return pixel
 
-    def noiseFormula(pixel, percentage):
+    def noise(pixel, percentage: int = 10):
         """
         Returns 0 or 1 on a percentage chance, otherwise the original pixel
 
@@ -96,7 +150,7 @@ class Formulae:
         else:
             return pixel
         
-    def thermalFormula(pixel):
+    def thermal(pixel):
         """
         Returns a mapping of the intensity of the given pixel to a thermal value
 
@@ -109,9 +163,55 @@ class Formulae:
             pixel : Pixel : pixel of an image
         """
         brightness = pixel
-        if not isinstance(pixel, int):
-            brightness = Formulae.ncstGrayscaleFormula(pixel)
+        if isinstance(pixel, Iterable):
+            brightness = Formulae.ncstGrayscale(pixel)
         return [255 - brightness, max(min(int(2 * (((brightness - 127)**2 / -127) + 127)), 255), 0), brightness]
+    
+    def invert(pixel):
+        """
+        Inverts the colors of the given pixel
+
+        Params: 
+            pixel : Pixel : pixel of an image
+        """
+        return 255 - pixel
+    
+    def binaryThreshold(pixel, threshold: int = 127):
+        """
+        Maps a pixel to a binary pixel given a threhsold value
+
+        Params: 
+            pixel : Pixel : pixel of an image
+        """
+        brightness = pixel
+        if isinstance(pixel, Iterable):
+            brightness = Formulae.ncstGrayscale(pixel)
+        return 0 if brightness < threshold else 255
+    
+    def sepiaTone(pixel, factor=1.0):
+        """
+        Adds a sepia tone to the image
+
+        Params:
+            pixel : Pixel : pixel of image
+            factor : float : intensity of sepia tone
+        """
+        if isinstance(pixel, Iterable):
+            r = int(0.393 * pixel[2] + 0.769 * pixel[1] + 0.189 * pixel[0]) * factor
+            g = int(0.349 * pixel[2] + 0.686 * pixel[1] + 0.168 * pixel[0]) * factor
+            b = int(0.272 * pixel[2] + 0.534 * pixel[1] + 0.131 * pixel[0]) * factor
+            return [min(b, 255), min(g, 255), min(r, 255)]
+        else:
+            return pixel
+        
+    def posterize(pixel, levels: int = 50):
+        """
+        Brings the pixels into discrete bands of color to appear similar to a movie poster
+
+        Params:
+            pixel : Pixel : pixel of image
+        """
+        return (pixel // levels) * levels
 
         
 class ImageUtilities:
@@ -168,6 +268,7 @@ class ImageUtilities:
                     else:
                         neighborhood = ImageUtilities.getNeighborhoodFromPosition(i, j, image, neighborhoodSize)
                         newImage[i][j] = filter(neighborhood)
+            newImage = np.clip(newImage, 0, 255).astype(np.uint8)
             return newImage
         
 
@@ -264,58 +365,53 @@ class ImageUtilities:
             neighborhood : image : portion of image to apply kernel on 
             kernel : image : mask to apply on neighborhood
         """
-        result = 0
-        for i, row in enumerate(kernel):
-            for j, mask in enumerate(row):
-                result += mask * neighborhood[i][j]
-        return result
+        if isinstance(neighborhood[0][0], Iterable):
+            result = np.zeros(neighborhood.shape[2], dtype=float) 
+            for i, row in enumerate(kernel):
+                for j, mask in enumerate(row):
+                    result += mask * neighborhood[i][j]
+            return np.clip(result, 0, 255).astype(np.uint8).tolist()  
+        else:
+            result = 0
+            for i, row in enumerate(kernel):
+                for j, mask in enumerate(row):
+                    result += mask * neighborhood[i][j]
+            return np.clip(result, 0, 255).astype(np.uint8)
+        
+def showcase(imagePath: str, grayscale: bool = False):
+    image = cv2.imread(imagePath, cv2.IMREAD_COLOR)
+    if grayscale:
+        image = ImageUtilities.applyFilter(image, Formulae.ncstGrayscale, image.shape)
+    outputs = []
+    for name, formula in [[attr, getattr(Formulae, attr)] for attr in dir(Formulae) if callable(getattr(Formulae, attr))]:
+        if '__' not in name:
+            print(f'Running: {name}')
+            outputImg = ImageUtilities.applyFilter(image, formula, image.shape)
+            outputs.append([outputImg, name])
+    for name, kernel in [[attr, getattr(Kernels, attr)] for attr in dir(Kernels)]:
+        if '__' not in name:
+            print(f'Running: {name}')
+            neighborhoodSize = 3 if '3X3' in name else 5
+            outputImg = ImageUtilities.applyFilter(image, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, kernel), image.shape, neighborhoodSize=neighborhoodSize)
+            outputs.append([outputImg, name])
 
-def showGallery():
-    dog = cv2.imread("./images/dog.jpeg", cv2.IMREAD_COLOR)
-    gray = ImageUtilities.applyFilter(dog, Formulae.ncstGrayscaleFormula, (dog.shape[0], dog.shape[1]))
-    noise1 = ImageUtilities.applyFilter(dog, lambda x: Formulae.noiseFormula(x, 1), dog.shape)
-    noise10 = ImageUtilities.applyFilter(dog, lambda x: Formulae.noiseFormula(x, 10), dog.shape)
-    noise50 = ImageUtilities.applyFilter(dog, lambda x: Formulae.noiseFormula(x, 50), dog.shape)
-    denoised1 = ImageUtilities.applyFilter(noise1, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, Kernels.AVERAGE_3X3), noise1.shape, neighborhoodSize=3)
-    denoised10 = ImageUtilities.applyFilter(noise10, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, Kernels.AVERAGE_3X3), noise10.shape, neighborhoodSize=3)
-    denoised50 = ImageUtilities.applyFilter(noise50, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, Kernels.AVERAGE_3X3), noise50.shape, neighborhoodSize=3)
-    denoised1_5 = ImageUtilities.applyFilter(noise1, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, Kernels.AVERAGE_5X5), noise1.shape, neighborhoodSize=5)
-    denoised10_5 = ImageUtilities.applyFilter(noise10, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, Kernels.AVERAGE_5X5), noise10.shape, neighborhoodSize=5)
-    denoised50_5 = ImageUtilities.applyFilter(noise50, lambda x: ImageUtilities.applyKernelOnNieghborhood(x, Kernels.AVERAGE_5X5), noise50.shape, neighborhoodSize=5)
-    thermalNoise1 = ImageUtilities.applyFilter(noise1, Formulae.thermalFormula, noise1.shape)
-    thermalNoise10 = ImageUtilities.applyFilter(noise10, Formulae.thermalFormula, noise10.shape)
-    thermalNoise50 = ImageUtilities.applyFilter(noise50, Formulae.thermalFormula, noise50.shape)
-    images = [
-        [noise1, "Noise 1%"], 
-        [noise10, "Noise 10%"], 
-        [noise50, "Noise 50%"], 
-        [denoised1, "Averaged 1% 3x3"],
-        [denoised10, "Averaged 10% 3x3"], 
-        [denoised50, "Averaged 50% 3x3"], 
-        [denoised1_5, "Averaged 1% 5x5"], 
-        [denoised10_5, "Averaged 10% 5x5"], 
-        [denoised50_5, "Averaged 50% 5x5"], 
-        [thermalNoise1, "Thermal Noise 1%"],
-        [thermalNoise10, "Thermal Noise 10%"],
-        [thermalNoise50, "Thermal Noise 50%"],
-    ]
 
-    fig, axes = plt.subplots(4, 3, figsize=(10, 10))
+    fig, axes = plt.subplots(5, 6, figsize=(15, 10))
     axes = axes.flatten()
 
-    for ax, img in zip(axes, images):
-        imgRgb = cv2.cvtColor(img[0], cv2.COLOR_BGR2RGB)
-        ax.imshow(imgRgb)
-        ax.axis('off')
-        ax.set_title(img[1])
-        ax.set_xlabel('X-axis')
-        ax.set_ylabel('Y-axis')
+    for ax in axes:
+        ax.set_axis_off()
+    for ax, img in zip(axes.flatten(), outputs):
+        if img[0] is not None: 
+            imgRgb = cv2.cvtColor(img[0], cv2.COLOR_BGR2RGB)
+            ax.imshow(imgRgb)
+            ax.set_title(img[1])
+            ax.set_xlabel('X-axis')
+            ax.set_ylabel('Y-axis')
+            ax.axis('off')
 
 
     plt.tight_layout()
     plt.show()
 
-
-showGallery()
-
-
+showcase('./images/dog.jpeg')
