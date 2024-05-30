@@ -73,4 +73,4 @@ def blend(img1: str, img2: str):
     outputs = [[im1H, 'Image 1 High Pass'], [im2F, 'Image 2 Low Pass'], [equalized, 'Combined and Equalized']]
     showOutputs(outputs, (15, 5), 1, 3)
 
-blend('./images/dog.jpeg', './images/starry.webp')
+showcase('./images/dog.jpeg')
