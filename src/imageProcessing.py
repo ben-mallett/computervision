@@ -73,4 +73,54 @@ def blend(img1: str, img2: str):
     outputs = [[im1H, 'Image 1 High Pass'], [im2F, 'Image 2 Low Pass'], [equalized, 'Combined and Equalized']]
     showOutputs(outputs, (15, 5), 1, 3)
 
-showcase('./images/dog.jpeg')
+def showcaseBlur(filepath: str):
+    """
+    Showcases the affect of blurring using 3d visualization and gaussian blur kernels.
+
+    Params:
+        filepath : str : path to image 
+    """
+    image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
+    blurred5x5 = ImageUtilities.applyFilter(image, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.GAUSS_BLUR_5X5), image.shape, neighborhoodSize=5)
+    blurred11x11 = ImageUtilities.applyFilter(image, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.GAUSS_BLUR_11X11), image.shape, neighborhoodSize=11)
+
+    outputs = [[image, 'Regular Image'], [blurred5x5, 'Gauss 5x5'], [blurred11x11, 'Gauss 11x11']]
+    ImageUtilities.visualizeIn3D(outputs)
+
+def showcaseEdge(filepath: str):
+    """
+    Showcases Sobel and Canny edge detection of an image before and after blur
+
+    Params:
+        filepath : str : path to image
+    """
+    image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
+    sobelX = ImageUtilities.applyFilter(image, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.SOBEL_X_3X3), image.shape, neighborhoodSize=3)
+    sobelY = ImageUtilities.applyFilter(image, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.SOBEL_Y_3X3), image.shape, neighborhoodSize=3)
+    sobel = cv2.addWeighted(sobelX, 0.5, sobelY, 0.5, 0)
+    sobelHystersis50 = ImageUtilities.applyFilter(sobel, lambda x : Formulae.hysterisisThreshold(x, 25, 255), sobel.shape)
+    sobelHystersis150 = ImageUtilities.applyFilter(sobel, lambda x : Formulae.hysterisisThreshold(x, 75, 255), sobel.shape)
+    canny = cv2.Canny(image, 100, 100)
+    blurred = ImageUtilities.applyFilter(image, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.GAUSS_BLUR_5X5), image.shape, neighborhoodSize=5)
+    blurredSobelX = ImageUtilities.applyFilter(blurred, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.SOBEL_X_3X3), blurred.shape, neighborhoodSize=3)
+    blurredSobelY = ImageUtilities.applyFilter(blurred, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.SOBEL_Y_3X3), blurred.shape, neighborhoodSize=3)
+    blurredSobel = cv2.addWeighted(blurredSobelX, 0.5, blurredSobelY, 0.5, 0)
+    blurredSobelHystersis50 = ImageUtilities.applyFilter(blurredSobel, lambda x : Formulae.hysterisisThreshold(x, 25, 255), blurredSobel.shape)
+    blurredSobelHystersis150 = ImageUtilities.applyFilter(blurredSobel, lambda x : Formulae.hysterisisThreshold(x, 75, 255), blurredSobel.shape)
+    blurredCanny = cv2.Canny(blurred, 100, 100)
+    outputs = [ 
+        [image, 'Original'], 
+        [sobelHystersis50, 'Sobel Hystersis 25/255'], 
+        [sobelHystersis150, 'Sobel Hystersis 75/255'], 
+        [canny, 'Canny 100/100'],
+        [blurred, 'Blurred'],
+        [blurredSobelHystersis50, 'Blurred Sobel Hystersis 25/255'],
+        [blurredSobelHystersis150, 'Blurred Sobel Hystersis 75/255'],
+        [blurredCanny, 'Blurred Canny 100/100']
+    ]
+    showOutputs(outputs, (15, 10), 2, 4)
+
+showcaseBlur('./images/dog.jpeg')
+showcaseEdge('./images/dog.jpeg')
+
+

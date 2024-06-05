@@ -102,3 +102,17 @@ class Formulae:
             pixel : Pixel : pixel of image
         """
         return (pixel // levels) * levels
+    
+    def hysterisisThreshold(pixel, mini: int, maxi: int):
+        """
+        Keeps the pixel between the threshold values, otherwise returns 0
+
+        Params: 
+            pixel : pixel : pixel value
+            min : int : minimum threshold to keep
+            max : int : maximum threshold to keep
+        """
+        if (np.average(pixel) < mini or np.average(pixel) > maxi):
+            return 0
+        else:
+            return pixel

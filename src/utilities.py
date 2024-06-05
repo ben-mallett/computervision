@@ -1,5 +1,6 @@
 import numpy as np
 from collections.abc import Iterable
+import matplotlib.pyplot as plt
         
 class ImageUtilities:
     def getNeighborhoodFromPosition(x: int, y: int, image, neighborhoodSize: int, constant: int = 255):
@@ -164,3 +165,25 @@ class ImageUtilities:
                 for j, mask in enumerate(row):
                     result += mask * neighborhood[i][j]
             return np.clip(result, 0, 255).astype(np.uint8)
+        
+    def visualizeIn3D(images, cmap=plt.cm.gray):
+        numImages = len(images)
+        cols = int(np.ceil(np.sqrt(numImages)))
+        rows = int(np.ceil(numImages / cols))
+        
+        fig = plt.figure(figsize=(15, 10))
+
+        for idx, (image, name) in enumerate(images):
+            height, width = image.shape
+            x = np.linspace(0, width, width, dtype=int)
+            y = np.linspace(0, height, height, dtype=int)
+            X, Y = np.meshgrid(x, y)
+
+            ax = fig.add_subplot(rows, cols, idx + 1, projection='3d')
+            surf = ax.plot_surface(X, Y, image, cmap=cmap)
+            
+            ax.set_title(name)
+            ax.set_zlabel('Intensity')
+
+        plt.tight_layout()
+        plt.show()
