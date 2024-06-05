@@ -68,9 +68,11 @@ def blend(img1: str, img2: str):
     im1F = ImageUtilities.applyFilter(im1, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.NEIGHBORHOOD_11X11), im1.shape, neighborhoodSize=11)
     im2F = ImageUtilities.applyFilter(im2Resized, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.NEIGHBORHOOD_11X11), im2Resized.shape, neighborhoodSize=11)
     im1H = np.subtract(im1, im1F) + 127
-    combined = cv2.add(im2F, im1H)
-    equalized = ImageUtilities.equalizeImage(combined)
-    outputs = [[im1H, 'Image 1 High Pass'], [im2F, 'Image 2 Low Pass'], [equalized, 'Combined and Equalized']]
+    combined = cv2.addWeighted(im1H, 0.5, im2F, 0.5, 0)
+
+    blurred = ImageUtilities.applyFilter(combined, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.GAUSS_BLUR_3X3), combined.shape, neighborhoodSize=3)
+
+    outputs = [[im1H, 'Image 1 High Pass'], [im2F, 'Image 2 Low Pass'], [blurred, 'Hybrid']]
     showOutputs(outputs, (15, 5), 1, 3)
 
 def showcaseBlur(filepath: str):
@@ -120,7 +122,7 @@ def showcaseEdge(filepath: str):
     ]
     showOutputs(outputs, (15, 10), 2, 4)
 
-showcaseBlur('./images/dog.jpeg')
-showcaseEdge('./images/dog.jpeg')
+blend('./images/dog.jpeg', './images/xray.jpeg')
+
 
 
