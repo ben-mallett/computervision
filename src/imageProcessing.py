@@ -41,7 +41,11 @@ def showcase(imagePath: str, grayscale: bool = False):
     for name, formula in [[attr, getattr(Formulae, attr)] for attr in dir(Formulae) if callable(getattr(Formulae, attr))]:
         if '__' not in name:
             print(f'Running: {name}')
-            outputImg = ImageUtilities.applyFilter(image, formula, image.shape)
+            outputImg = None
+            if 'hysterisis' in name:
+                outputImg = ImageUtilities.applyFilter(image, lambda x : formula(x, 25, 100), image.shape)
+            else:
+                outputImg = ImageUtilities.applyFilter(image, formula, image.shape)
             outputs.append([outputImg, name])
     for name, kernel in [[attr, getattr(Kernels, attr)] for attr in dir(Kernels)]:
         if '__' not in name:
@@ -74,6 +78,21 @@ def blend(img1: str, img2: str):
 
     outputs = [[im1H, 'Image 1 High Pass'], [im2F, 'Image 2 Low Pass'], [blurred, 'Hybrid']]
     showOutputs(outputs, (15, 5), 1, 3)
+
+def nightVision(img: str):
+    """
+    Given a path to an image shows that image transformed into 'night vision mode'
+
+    Params:
+        img : str : file path of image to show
+    """
+    image = cv2.imread(img, cv2.IMREAD_COLOR)
+    unsharp = ImageUtilities.applyFilter(image, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.UNSHARP_MASKING_5X5), image.shape, neighborhoodSize=5)
+    edge = ImageUtilities.applyFilter(unsharp, lambda x : ImageUtilities.applyKernelOnNieghborhood(x, Kernels.MALLETT_EDGE_1_5X5), unsharp.shape, neighborhoodSize=5)
+    hysteresis = ImageUtilities.applyFilter(edge, lambda x : Formulae.hysterisisThreshold(x, 30, 255), edge.shape)
+    sepia = ImageUtilities.applyFilter(hysteresis, Formulae.sepiaTone, hysteresis.shape)
+    outputs = [[image, 'Original'], [unsharp, 'Unsharp Masking'], [edge, 'Edge'],  [hysteresis, 'Hysteresis'], [sepia, 'Sepia']]
+    showOutputs(outputs, figsize=(15, 10), w=2, h=3)
 
 def showcaseBlur(filepath: str):
     """
@@ -122,7 +141,7 @@ def showcaseEdge(filepath: str):
     ]
     showOutputs(outputs, (15, 10), 2, 4)
 
-blend('./images/dog.jpeg', './images/xray.jpeg')
+nightVision('./images/dog.jpeg')
 
 
 
